@@ -12,6 +12,7 @@ COPY src/ ./src/
 RUN npm run build
 
 FROM node:18-alpine
+LABEL io.modelcontextprotocol.server.name="io.github.SamuelMoraesF/mcp-nfse-nacional"
 
 WORKDIR /app
 

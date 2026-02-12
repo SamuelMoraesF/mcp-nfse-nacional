@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.SamuelMoraesF/mcp-nfse-nacional",
+  "description": "MCP Server para consulta de NFSe no portal nacional (nfse.gov.br)",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/SamuelMoraesF/mcp-nfse-nacional",
+    "source": "github"
+  },
+  "version": "1.0.3",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "registry_base_url": "https://registry.npmjs.org",
+      "identifier": "mcp-nfse-nacional",
+      "version": "1.0.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "environment_variables": [
+        {
+          "description": "Senha do certificado digital (e-CNPJ/e-CPF) em formato PFX",
+          "is_required": true,
+          "format": "string",
+          "is_secret": true,
+          "name": "CERT_PASSWORD"
+        },
+        {
+          "description": "Caminho para o arquivo do certificado digital (.pfx)",
+          "is_required": true,
+          "format": "string",
+          "is_secret": false,
+          "name": "CERT_FILE"
+        },
+        {
+          "description": "Opções do Node.js (use --openssl-legacy-provider para compatibilidade com certificados)",
+          "is_required": false,
+          "format": "string",
+          "is_secret": false,
+          "name": "NODE_OPTIONS",
+          "default": "--openssl-legacy-provider"
+        }
+      ]
+    }
+  ]
+}

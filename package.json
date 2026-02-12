@@ -1,8 +1,9 @@
 {
   "name": "mcp-nfse-nacional",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP Server para consulta de NFSe no portal nacional (nfse.gov.br)",
   "main": "dist/index.js",
+  "mcpName": "io.github.SamuelMoraesF/mcp-nfse-nacional",
   "bin": {
     "mcp-nfse-nacional": "dist/index.js"
   },
