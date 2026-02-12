@@ -5,7 +5,6 @@ import { parseStringPromise } from 'xml2js';
 import { ApplicationException, UnauthenticatedSessionException } from './exceptions';
 import { store_file } from './storage_utils';
 
-// Helper function to format date as DD/MM/YYYY
 function formatDate(date: Date): string {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -13,28 +12,12 @@ function formatDate(date: Date): string {
     return `${day}/${month}/${year}`;
 }
 
-// Helper to check for redirect to login
 function checkAuthentication(response: any) {
-    // Check if the final URL (after redirects, if followed) is the login page
-    // Or if we manually handle redirects (maxRedirects: 0) and see a Location header
-
-    // axios default follows redirects. If we ended up at Login, request.res.responseUrl (in some versions) or response.request.res.responseUrl
-    // A simpler way is to check the response data or headers if we are redirected.
-    // However, if we use maxRedirects: 0, we check the 'location' header.
-
-    // If maxRedirects is NOT 0, axios follows. 
-    // The previous code for login used maxRedirects: 0. 
-    // Here we might need to check if the response URL is login.
-
-    // Let's assume we want to catch 302s manually to be sure, or check the final URL.
-    // The request to NFSe pages might redirect to login if session expired.
-
     const responseUrl = response.request?.res?.responseUrl || '';
     if (responseUrl.includes('/EmissorNacional/Login')) {
         throw new UnauthenticatedSessionException();
     }
 
-    // Also check location header if we stopped a redirect (though standard axios follows)
     const location = response.headers['location'];
     if (location && location.includes('/EmissorNacional/Login')) {
         throw new UnauthenticatedSessionException();
@@ -116,8 +99,6 @@ export async function buscar_nfse(cookies: string[], data_inicio: Date, data_fim
             rows.each((_, element) => {
                 const tr = $(element);
 
-                // Busca o link de download para extrair a chave correta (numérica)
-                // O link está dentro de .menu-content -> a[href*="/EmissorNacional/Notas/Download/NFSe/"]
                 const downloadLink = tr.find('a[href*="/EmissorNacional/Notas/Download/NFSe/"]');
                 const href = downloadLink.attr('href');
 
@@ -186,23 +167,6 @@ export async function buscar_nfse(cookies: string[], data_inicio: Date, data_fim
     return allNfses;
 }
 
-function getValue(obj: any, key: string, isAttribute: boolean = false): any {
-    if (!obj) return null;
-
-    // Arrays: take first element
-    if (Array.isArray(obj)) {
-        if (obj.length === 0) return null;
-        obj = obj[0];
-    }
-
-    // If we are looking for value of a simple node which xml2js parsed as object with only "_" or just value
-    // xml2js default: { xLocEmi: ['Florianopolis'] } -> handled by Array check above -> 'Florianopolis'
-
-    // If accessing mapped property
-    return obj[key];
-}
-
-// Helper to access nested property with dot notation
 function getNested(obj: any, path: string): any {
     if (!obj) return null;
     if (path === '') return obj;
@@ -213,7 +177,6 @@ function getNested(obj: any, path: string): any {
     for (const part of parts) {
         if (current === null || current === undefined) return null;
 
-        // xml2js specific: check if current is array
         if (Array.isArray(current)) {
             current = current[0];
         }
@@ -221,7 +184,6 @@ function getNested(obj: any, path: string): any {
         current = current[part];
     }
 
-    // Final check if result is array
     if (Array.isArray(current)) {
         current = current[0];
     }
@@ -234,7 +196,7 @@ function formatNfseResult(xmlObj: any, xmlPath: string): any {
         return { raw: xmlObj, xml_path: xmlPath };
     }
 
-    const inf = getNested(xmlObj, 'NFSe.infNFSe'); // This gets the first element of infNFSe array
+    const inf = getNested(xmlObj, 'NFSe.infNFSe');
 
     const formatted: any = {
         cabecalho: {
@@ -275,14 +237,12 @@ function formatNfseResult(xmlObj: any, xmlPath: string): any {
             issqn: getNested(inf, 'valores.vISSQN'),
             total_retencoes: getNested(inf, 'valores.vTotalRet'),
             valor_liquido: getNested(inf, 'valores.vLiq'),
-            // Add deduction/reductions if present
             valor_deducao: getNested(inf, 'valores.vCalcDR'),
         },
-        dps: {}, // Will fill below
+        dps: {},
         xml_path: xmlPath
     };
 
-    // DPS Mapping
     const dps = getNested(inf, 'DPS.infDPS');
     if (dps) {
         formatted.dps = {
@@ -300,7 +260,7 @@ function formatNfseResult(xmlObj: any, xmlPath: string): any {
             },
             tomador: {
                 cnpj: getNested(dps, 'toma.CNPJ'),
-                cpf: getNested(dps, 'toma.CPF'), // Check if CPF exists in other cases
+                cpf: getNested(dps, 'toma.CPF'),
                 razao_social: getNested(dps, 'toma.xNome'),
                 endereco: {
                     logradouro: getNested(dps, 'toma.end.xLgr'),
@@ -318,7 +278,6 @@ function formatNfseResult(xmlObj: any, xmlPath: string): any {
             },
             valores_dps: {
                 valor_servico: getNested(dps, 'valores.vServPrest.vServ'),
-                // Breakdown of taxes could be added here if needed
             }
         };
     }
@@ -342,14 +301,8 @@ export async function get_nfse(cookies: string[], key: string): Promise<any> {
         checkAuthentication(response);
 
         const xmlData = response.data;
-
-        // Parse XML
         const result = await parseStringPromise(xmlData);
-
-        // Save XML to file
         const savedPath = store_file(xmlData, '.xml');
-
-        // Format Result
         const formatted = formatNfseResult(result, savedPath);
 
         return formatted;
@@ -376,9 +329,6 @@ export async function get_nfse_pdf(cookies: string[], key: string): Promise<stri
             responseType: 'arraybuffer'
         });
 
-        // checkAuthentication helper needs to inspect headers or responseURL.
-        // For arraybuffer response, properties might be slightly different depending on axios version/adapter,
-        // but headers should be present.
         checkAuthentication(response);
 
         const pdfData = response.data;

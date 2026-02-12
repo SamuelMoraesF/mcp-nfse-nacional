@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+.env
+*.pfx
+storage
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md

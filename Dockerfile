@@ -1,0 +1,24 @@
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY tsconfig.json ./
+
+RUN npm ci
+COPY . .
+
+RUN npx tsc
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/.env ./.env
+RUN mkdir -p storage
+
+CMD ["node", "dist/index.js"]

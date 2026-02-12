@@ -54,7 +54,6 @@ async function main() {
             try {
                 console.log(`Downloading NFSe details for key: ${key}...`);
                 const details = await get_nfse(cookies, key);
-                // console.log(`Details for ${key}:`, JSON.stringify(details, null, 2)); // Reduced noise
                 console.log(`XML saved at: ${details.xml_path}`);
 
                 console.log(`Downloading PDF for key: ${key}...`);
@@ -63,7 +62,7 @@ async function main() {
 
             } catch (err: any) {
                 if (err instanceof UnauthenticatedSessionException) {
-                    throw err; // Re-throw to be caught by outer block
+                    throw err;
                 }
                 console.error(`Error processing details for ${key}:`, err.message);
             }
