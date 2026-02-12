@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "prepare": "tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
     "start": "node --openssl-legacy-provider dist/index.js",
     "test": "NODE_OPTIONS=--openssl-legacy-provider jest",
     "test:acceptance": "NODE_OPTIONS=--openssl-legacy-provider jest --testPathPatterns=acceptance --verbose"
