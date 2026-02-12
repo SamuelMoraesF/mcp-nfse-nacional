@@ -1,4 +1,4 @@
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY src/ ./src/
 
 RUN npm run build
 
-FROM node:18-alpine
+FROM node:22-alpine
 LABEL io.modelcontextprotocol.server.name="io.github.SamuelMoraesF/mcp-nfse-nacional"
 
 WORKDIR /app
@@ -24,6 +24,7 @@ RUN mkdir -p storage
 ENV MCP_TRANSPORT=streamable-http
 ENV MCP_HOST=0.0.0.0
 ENV MCP_PORT=3000
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 
 EXPOSE 3000
 
