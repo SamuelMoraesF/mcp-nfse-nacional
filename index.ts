@@ -47,35 +47,25 @@ async function ensureAuthenticated(): Promise<string[]> {
   return cachedCookies;
 }
 
+async function withAutoLogin<T>(action: (cookies: string[]) => Promise<T>): Promise<T> {
+  const cookies = await ensureAuthenticated();
+  try {
+    return await action(cookies);
+  } catch (error: unknown) {
+    if (error instanceof UnauthenticatedSessionException) {
+      cachedCookies = null;
+      const freshCookies = await ensureAuthenticated();
+      return await action(freshCookies);
+    }
+    throw error;
+  }
+}
+
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: 'mcp-nfse-nacional',
     version: '1.0.0',
   });
-
-  server.tool(
-    'nfse_login',
-    'Autentica no portal NFSe Nacional usando o certificado digital configurado. Necessário antes de usar as outras ferramentas.',
-    {},
-    async () => {
-      try {
-        cachedCookies = null;
-        const cookies = await ensureAuthenticated();
-        return {
-          content: [{
-            type: 'text',
-            text: `Login realizado com sucesso. ${cookies.length} cookie(s) obtido(s).`,
-          }],
-        };
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text', text: `Erro ao fazer login: ${message}` }],
-          isError: true,
-        };
-      }
-    }
-  );
 
   server.tool(
     'nfse_buscar',
@@ -86,7 +76,6 @@ function createMcpServer(): McpServer {
     },
     async ({ data_inicio, data_fim }) => {
       try {
-        const cookies = await ensureAuthenticated();
         const startDate = new Date(`${data_inicio}T00:00:00`);
         const endDate = new Date(`${data_fim}T23:59:59`);
 
@@ -97,7 +86,7 @@ function createMcpServer(): McpServer {
           };
         }
 
-        const nfses = await buscar_nfse(cookies, startDate, endDate);
+        const nfses = await withAutoLogin((cookies) => buscar_nfse(cookies, startDate, endDate));
 
         return {
           content: [{
@@ -106,9 +95,6 @@ function createMcpServer(): McpServer {
           }],
         };
       } catch (error: unknown) {
-        if (error instanceof UnauthenticatedSessionException) {
-          cachedCookies = null;
-        }
         const message = error instanceof Error ? error.message : String(error);
         return {
           content: [{ type: 'text', text: `Erro ao buscar NFSe: ${message}` }],
@@ -126,8 +112,7 @@ function createMcpServer(): McpServer {
     },
     async ({ chave }) => {
       try {
-        const cookies = await ensureAuthenticated();
-        const details = await get_nfse(cookies, chave);
+        const details = await withAutoLogin((cookies) => get_nfse(cookies, chave));
 
         return {
           content: [{
@@ -136,9 +121,6 @@ function createMcpServer(): McpServer {
           }],
         };
       } catch (error: unknown) {
-        if (error instanceof UnauthenticatedSessionException) {
-          cachedCookies = null;
-        }
         const message = error instanceof Error ? error.message : String(error);
         return {
           content: [{ type: 'text', text: `Erro ao obter detalhes da NFSe: ${message}` }],
@@ -156,8 +138,7 @@ function createMcpServer(): McpServer {
     },
     async ({ chave }) => {
       try {
-        const cookies = await ensureAuthenticated();
-        const pdfPath = await get_nfse_pdf(cookies, chave);
+        const pdfPath = await withAutoLogin((cookies) => get_nfse_pdf(cookies, chave));
 
         return {
           content: [{
@@ -166,9 +147,6 @@ function createMcpServer(): McpServer {
           }],
         };
       } catch (error: unknown) {
-        if (error instanceof UnauthenticatedSessionException) {
-          cachedCookies = null;
-        }
         const message = error instanceof Error ? error.message : String(error);
         return {
           content: [{ type: 'text', text: `Erro ao baixar PDF da NFSe: ${message}` }],

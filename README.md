@@ -4,16 +4,15 @@ MCP Server para consulta de Notas Fiscais de Serviço Eletrônicas (NFSe) no por
 
 ## Ferramentas disponíveis
 
-O servidor expõe quatro ferramentas via protocolo MCP:
+O servidor expõe três ferramentas via protocolo MCP:
 
 | Ferramenta | Descrição | Parâmetros |
 |---|---|---|
-| `nfse_login` | Autentica no portal NFSe Nacional usando o certificado digital (`.pfx`) configurado. Necessário antes de utilizar as demais ferramentas. | Nenhum |
 | `nfse_buscar` | Busca NFSe emitidas em um período. Retorna lista com data, destinatário, valor, status e chave de cada nota. | `data_inicio` (YYYY-MM-DD), `data_fim` (YYYY-MM-DD) |
 | `nfse_detalhes` | Obtém os detalhes completos de uma NFSe a partir da sua chave. Retorna cabeçalho, emitente, valores, DPS e salva o XML localmente. | `chave` (string) |
 | `nfse_pdf` | Baixa o PDF (DANFSe) de uma NFSe a partir da sua chave. Retorna o caminho do arquivo PDF salvo localmente. | `chave` (string) |
 
-> A autenticação é feita automaticamente quando qualquer ferramenta é chamada sem sessão ativa. Porém, você pode usar `nfse_login` para forçar uma nova autenticação caso a sessão expire.
+> A autenticação é gerenciada automaticamente. O login é realizado na primeira chamada e, caso a sessão expire (erro de autenticação), uma nova tentativa de login é feita de forma transparente.
 
 ## Variáveis de ambiente
 
