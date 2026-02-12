@@ -1,0 +1,4 @@
+.env
+*.pfx
+storage/
+node_modules/
