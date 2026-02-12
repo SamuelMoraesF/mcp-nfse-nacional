@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import * as crypto from 'crypto';
 import { createServer as createHttpServer, IncomingMessage, ServerResponse } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -169,6 +170,8 @@ function readBody(req: IncomingMessage): Promise<string> {
 }
 
 async function startStreamableHttp(): Promise<void> {
+  const sessions = new Map<string, { server: McpServer; transport: StreamableHTTPServerTransport }>();
+
   const httpServer = createHttpServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
 
@@ -182,42 +185,90 @@ async function startStreamableHttp(): Promise<void> {
       return;
     }
 
-    if (req.method !== 'POST') {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
+    if (req.method === 'POST') {
+      try {
+        const body = await readBody(req);
+        const parsedBody = JSON.parse(body);
+
+        if (sessionId && sessions.has(sessionId)) {
+          const session = sessions.get(sessionId)!;
+          await session.transport.handleRequest(req, res, parsedBody);
+        } else if (!sessionId) {
+          const server = createMcpServer();
+          const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => crypto.randomUUID(),
+          });
+
+          await server.connect(transport);
+
+          transport.onclose = () => {
+            const sid = transport.sessionId;
+            if (sid) {
+              sessions.delete(sid);
+            }
+            server.close();
+          };
+
+          await transport.handleRequest(req, res, parsedBody);
+
+          const newSessionId = transport.sessionId;
+          if (newSessionId) {
+            sessions.set(newSessionId, { server, transport });
+          }
+        } else {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            jsonrpc: '2.0',
+            error: { code: -32000, message: 'Invalid or expired session' },
+            id: null,
+          }));
+        }
+      } catch (error: unknown) {
+        console.error('Error handling MCP request:', error);
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            jsonrpc: '2.0',
+            error: { code: -32603, message: 'Internal server error' },
+            id: null,
+          }));
+        }
+      }
+    } else if (req.method === 'GET') {
+      if (!sessionId || !sessions.has(sessionId)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Invalid or missing session ID' },
+          id: null,
+        }));
+        return;
+      }
+
+      const session = sessions.get(sessionId)!;
+      await session.transport.handleRequest(req, res);
+    } else if (req.method === 'DELETE') {
+      if (!sessionId || !sessions.has(sessionId)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Invalid or missing session ID' },
+          id: null,
+        }));
+        return;
+      }
+
+      const session = sessions.get(sessionId)!;
+      await session.transport.handleRequest(req, res);
+    } else {
       res.writeHead(405, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         jsonrpc: '2.0',
         error: { code: -32000, message: 'Method not allowed' },
         id: null,
       }));
-      return;
-    }
-
-    try {
-      const body = await readBody(req);
-      const parsedBody = JSON.parse(body);
-
-      const server = createMcpServer();
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-      });
-
-      await server.connect(transport);
-      await transport.handleRequest(req, res, parsedBody);
-
-      res.on('close', () => {
-        transport.close();
-        server.close();
-      });
-    } catch (error: unknown) {
-      console.error('Error handling MCP request:', error);
-      if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          jsonrpc: '2.0',
-          error: { code: -32603, message: 'Internal server error' },
-          id: null,
-        }));
-      }
     }
   });
 
