@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { login, buscar_nfse, get_nfse, get_nfse_pdf } from './nfse';
+import { login, buscar_nfse, get_nfse, get_nfse_pdf } from '../src/nfse';
 
 dotenv.config();
 
@@ -16,7 +16,7 @@ beforeAll(async () => {
     expect(certPassword).toBeDefined();
     expect(certFile).toBeDefined();
 
-    const pfxPath = path.resolve(__dirname, certFile!);
+    const pfxPath = path.resolve(__dirname, '..', certFile!);
     expect(fs.existsSync(pfxPath)).toBe(true);
 
     const pfxBuffer = fs.readFileSync(pfxPath);

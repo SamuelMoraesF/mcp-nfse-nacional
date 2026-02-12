@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { login, buscar_nfse, get_nfse, get_nfse_pdf } from './nfse';
-import { UnauthenticatedSessionException } from './exceptions';
+import { login, buscar_nfse, get_nfse, get_nfse_pdf } from './src/nfse';
+import { UnauthenticatedSessionException } from './src/exceptions';
 
 dotenv.config();
 

@@ -6,7 +6,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 RUN npm ci
-COPY . .
+COPY index.ts ./
+COPY src/ ./src/
 
 RUN npx tsc
 
@@ -21,4 +22,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/.env ./.env
 RUN mkdir -p storage
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "--openssl-legacy-provider", "dist/index.js"]

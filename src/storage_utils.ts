@@ -6,7 +6,7 @@ import { ApplicationException } from './exceptions';
 
 dotenv.config();
 
-const STORAGE_PATH = process.env.STORAGE_PATH || path.resolve(__dirname, 'storage');
+const STORAGE_PATH = process.env.STORAGE_PATH || path.resolve(__dirname, '..', 'storage');
 
 // Ensure storage directory exists
 if (!fs.existsSync(STORAGE_PATH)) {
